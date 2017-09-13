@@ -60,6 +60,7 @@ def get_cadastro(cpf):
 def post_cadastro(cpf, dados):
     global DADOS_DIR
     parametros = {}
+    app.logger.debug("Dados post %s: %s" % (type(dados), dados))
     path = os.path.join(DADOS_DIR, cpf)
     if os.path.exists(path):
         app.logger.debug("Arquivo do cpf %s encontrado. Abrindo..." % cpf)
