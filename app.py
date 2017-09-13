@@ -1,8 +1,10 @@
 import os
 import logging
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, abort
 import yaml
 app = Flask(__name__)
+
+DADOS_DIR = "dados"
 
 PARAMS_BOOL = [
     "email_validado",
@@ -10,7 +12,10 @@ PARAMS_BOOL = [
 ]
 
 
-def do_score(data):
+if not os.path.exists(DADOS_DIR):
+    os.mkdir(DADOS_DIR)
+
+def get_score(cpf):
     global PARAMS_BOOL
     arquivo = "parametros.yaml"
     app.logger.debug("Lendo arquivo de parametros")
@@ -20,24 +25,85 @@ def do_score(data):
             app.logger.debug("Arquivo de parametros ok")
             app.logger.debug(parametros)
     except yaml.YAMLError as exc:
-        print(exc)
-        return 
-    
+        app.logger.critical(exc)
+        abort(500) 
+
+    cadastro = get_cadastro(cpf)
+
     score_atual = 0
     if "cadastro" in parametros:
         for param_ref in PARAMS_BOOL:
-            if int(data.get(param_ref, 0)) == 1:
-                app.logger.debug("Adicionar " + param_ref)
-                score_atual += int(parametros["cadastro"][param_ref])
-            
+            if not param_ref in parametros["cadastro"]:
+                app.logger.error("Parametro %s nao existe nas configuracoes" % (param_ref))
+                continue
+            if int(cadastro.get(param_ref, 0)) == 1:
+                valor = int(parametros["cadastro"][param_ref])
+                app.logger.debug("Parametro %s: %d" % (param_ref, valor))
+                score_atual += valor            
     else:
         return "Parametros de cadastro nao encontrado"
     return jsonify(
         score=score_atual
     ) 
 
-@app.route('/score', methods=['GET', 'POST'])
-def score():
-    if request.method == 'POST':
-        return do_score(request.json)
+def get_cadastro(cpf):
+    global DADOS_DIR
+    path = os.path.join(DADOS_DIR, cpf)
+    if not os.path.exists(path):
+        abort(404)
+    try:
+        with open(path, "r") as f:
+            return yaml.load(f)
+    except yaml.YAMLError as exc:
+        app.logger.critical(exc)
+        abort(500)
+    return
+        
+def post_cadastro(cpf, dados):
+    global DADOS_DIR
+    parametros = {}
+    path = os.path.join(DADOS_DIR, cpf)
+    if os.path.exists(path):
+        app.logger.debug("Arquivo do cpf %s encontrado. Abrindo..." % cpf)
+        try:
+            with open(path, "r") as f:
+                parametros = yaml.load(f)
+                app.logger.debug("Dados CPF %s: %s" % (cpf, parametros))
+        except yaml.YAMLError as exc:
+            app.logger.critical(exc)
+            abort(500)
+    else:
+        app.logger.debug("Nao encontrado arquivo do cpf %s" % cpf)
+    parametros.update(dados)
+    try:
+        with open(path, "w") as f:
+            yaml.dump(parametros, f)
+    except yaml.YAMLError as exc:
+        app.logger.critical(exc)
+        abort(500)
+
+
+@app.route('/cadastro/<cpf>', methods=['GET', 'POST'])
+def cadastro(cpf):
+    app.logger.debug("Cadastro CPF: %s" % cpf)
+    if request.method == 'GET':
+        return jsonify(get_cadastro(cpf))
+    elif request.method == 'POST':
+        return post_cadastro(cpf, request.json)
     return 'opcao invalida'
+
+@app.route('/score/<cpf>', methods=['GET'])
+def score(cpf):
+    app.logger.debug("Score CPF: %s" % cpf)
+    if request.method == 'POST':
+        return jsonify(score=get_score(cpf))
+    return 'opcao invalida'
+    
+    
+@app.errorhandler(404)
+def page_not_found(error):
+    return ('', 404)
+    
+@app.errorhandler(500)
+def page_not_found(error):
+    return ('', 500)
