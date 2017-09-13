@@ -23,7 +23,7 @@ def get_score(cpf):
         with open(arquivo, "r") as p:
             parametros = yaml.load(p)
             app.logger.debug("Arquivo de parametros ok")
-            app.logger.debug(parametros)
+            app.logger.debug("Parametros: %s" % parametros)
     except yaml.YAMLError as exc:
         app.logger.critical(exc)
         abort(500) 
@@ -42,9 +42,7 @@ def get_score(cpf):
                 score_atual += valor            
     else:
         return "Parametros de cadastro nao encontrado"
-    return jsonify(
-        score=score_atual
-    ) 
+    return score_atual
 
 def get_cadastro(cpf):
     global DADOS_DIR
@@ -77,10 +75,12 @@ def post_cadastro(cpf, dados):
     parametros.update(dados)
     try:
         with open(path, "w") as f:
+            app.logger.debug("Abrindo arquivo para gravacao do cpf %s" % cpf)
             yaml.dump(parametros, f)
     except yaml.YAMLError as exc:
         app.logger.critical(exc)
         abort(500)
+    return ""
 
 
 @app.route('/cadastro/<cpf>', methods=['GET', 'POST'])
@@ -95,15 +95,13 @@ def cadastro(cpf):
 @app.route('/score/<cpf>', methods=['GET'])
 def score(cpf):
     app.logger.debug("Score CPF: %s" % cpf)
-    if request.method == 'POST':
-        return jsonify(score=get_score(cpf))
-    return 'opcao invalida'
+    return jsonify(score=get_score(cpf))
     
     
 @app.errorhandler(404)
 def page_not_found(error):
-    return ('', 404)
+    return '', 404
     
 @app.errorhandler(500)
-def page_not_found(error):
-    return ('', 500)
+def system_error(error):
+    return '', 500
