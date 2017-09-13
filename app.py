@@ -15,6 +15,33 @@ PARAMS_BOOL = [
 if not os.path.exists(DADOS_DIR):
     os.mkdir(DADOS_DIR)
 
+def get_autorizacao(score, acao):
+    arquivo = "parametros.yaml"
+    
+    app.logger.debug("Lendo arquivo de parametros")
+    try:
+        with open(arquivo, "r") as p:
+            parametros = yaml.load(p)
+            app.logger.debug("Arquivo de parametros ok")
+            app.logger.debug("Parametros: %s" % parametros)
+    except yaml.YAMLError as exc:
+        app.logger.critical(exc)
+        abort(500) 
+    if not "nivel" in parametros:
+        app.logger.critical("Niveis nao parametrizados")
+        abort(500) 
+    if not acao in parametros["nivel"]:
+        app.logger.critical("Nivel %s nao cadastrado" % acao)
+        abort(500) 
+    acao_nivel = parametros["nivel"][acao]
+    app.logger.debug("Acao nivel [%s]: %s" % (type(acao_nivel),acao_nivel))
+    
+    if acao_nivel > score:
+        return False
+    else:
+        return True
+
+
 def get_score(cpf):
     global PARAMS_BOOL
     arquivo = "parametros.yaml"
@@ -42,6 +69,7 @@ def get_score(cpf):
                 score_atual += valor            
     else:
         return "Parametros de cadastro nao encontrado"
+    app.logger.debug("Score calculado: %s" % score_atual)
     return score_atual
 
 def get_cadastro(cpf):
@@ -96,7 +124,12 @@ def cadastro(cpf):
 @app.route('/score/<cpf>', methods=['GET'])
 def score(cpf):
     app.logger.debug("Score CPF: %s" % cpf)
-    return jsonify(score=get_score(cpf))
+    cadastro = get_cadastro(cpf)
+    if "acao" in request.args:
+        score = get_score(cpf)
+        return jsonify(acesso=get_autorizacao(score, request.args.get("acao", cadastro)))
+    else:
+        return jsonify(score=get_score(cpf))
     
     
 @app.errorhandler(404)
