@@ -2,13 +2,15 @@ cadastro:
   email_validado: 5
   email_correlacao_crivo: 10
   tel_validado: 5
-  tel_correlacao_crivo: 10
+  tel_correlacao_crivo: 15
 nivel:
-  dados_segurado: 20
-  dados_apolice: 20
-  pagamento: 10
-  2a_via_boleto: 30
-  endosso: 
-  2a_via_apolice: 30
-  aviso_sinistro: 20
+  dados_cliente: 10
+  dados_produto: 85
+  pagamento: 30
+  2a_via_boleto: 35
+  endosso: 70
+  2a_via_apolice: 50
+  oferta_lance: 20
+  informe_ir: 65
+  
    

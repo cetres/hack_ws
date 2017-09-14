@@ -1,2 +1,5 @@
 flask
 PyYAML
+sklearn
+numpy
+pandas

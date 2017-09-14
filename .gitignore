@@ -1,3 +1,5 @@
 env
 __pycache__
 dados
+.ipynb_checkpoints
+resolve.ipynb

@@ -8,7 +8,9 @@ DADOS_DIR = "dados"
 
 PARAMS_BOOL = [
     "email_validado",
-    "tel_validado"
+    "tel_validado",
+    "tel_validado",
+    "tel_correlacao_crivo"
 ]
 
 
@@ -88,7 +90,7 @@ def get_cadastro(cpf):
 def post_cadastro(cpf, dados):
     global DADOS_DIR
     parametros = {}
-    app.logger.debug("Dados post %s: %s" % (type(dados), dados))
+    app.logger.debug("Dados post %s [%d]: %s" % (type(dados), len(dados), dados))
     path = os.path.join(DADOS_DIR, cpf)
     if os.path.exists(path):
         app.logger.debug("Arquivo do cpf %s encontrado. Abrindo..." % cpf)
@@ -99,13 +101,15 @@ def post_cadastro(cpf, dados):
         except yaml.YAMLError as exc:
             app.logger.critical(exc)
             abort(500)
+            return ""
     else:
         app.logger.debug("Nao encontrado arquivo do cpf %s" % cpf)
     parametros.update(dados)
+    app.logger.debug("Dados atualizados %s [%d]: %s" % (type(parametros), len(parametros), parametros))
     try:
         with open(path, "w") as f:
             app.logger.debug("Abrindo arquivo para gravacao do cpf %s" % cpf)
-            yaml.dump(parametros, f)
+            yaml.dump(parametros, f, default_flow_style=False)
     except yaml.YAMLError as exc:
         app.logger.critical(exc)
         abort(500)
